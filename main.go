@@ -11,36 +11,75 @@ import (
 var task string
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello,", task)
+	log.Println("Получен GET-запрос")
+	var tasks []Task
+
+	if err := DB.Find(&tasks).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Received POST request")
+	log.Println("Получен POST-запрос")
 
 	var requestBody struct {
-		Message string `json:"message"`
+		Task   string `json:"task"`
+		IsDone bool   `json:"is_Done"`
 	}
+
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if requestBody.Message == "" {
-		http.Error(w, "Message is required", http.StatusBadRequest)
+	if requestBody.Task == "" {
+		http.Error(w, "Поле task обязательно", http.StatusBadRequest)
 		return
 	}
-	task = requestBody.Message
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"message": "Message updated to: %s"}`, task)
+
+	task := Task{
+		Task:   requestBody.Task,
+		IsDone: requestBody.IsDone,
+	}
+
+	if err := DB.Create(&task).Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	response := map[string]string{
+		"message": fmt.Sprintf("Задача успешно создана: %s", task.Task),
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/api/hello", GetHandler).Methods("GET")
-	router.HandleFunc("/api/hello", PostHandler).Methods("POST")
+	InitDB()
 
-	fmt.Println("Server is running on http://localhost:8080")
+	DB.AutoMigrate(&Task{})
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/tasks", GetHandler).Methods("GET")
+	router.HandleFunc("/api/tasks", PostHandler).Methods("POST")
+
+	fmt.Println("Сервер запущен по адресу: http://localhost:8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatalf("Could not start server: %v", err)
+		log.Fatalf("Не удалось запустить сервер: %v", err)
 	}
 }
