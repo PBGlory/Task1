@@ -4,31 +4,34 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
-func PostHandler(w http.ResponseWriter, r *http.Request) {
+func PostHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Получен POST-запрос")
 
 	var newTask Task
 
-	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		http.Error(w, "Ошибка декодирования JSON", http.StatusBadRequest)
+	if err := json.NewDecoder(request.Body).Decode(&newTask); err != nil {
+		http.Error(writer, "Ошибка декодирования JSON", http.StatusBadRequest)
 		return
 	}
 
+	newTask.Task = strings.TrimSpace(newTask.Task)
+
 	if newTask.Task == "" {
-		http.Error(w, "Поле 'task' обязательно", http.StatusBadRequest)
+		http.Error(writer, "Поле 'task' обязательно и должно содержать символы", http.StatusBadRequest)
 		return
 	}
 
 	if err := DB.Create(&newTask).Error; err != nil {
-		http.Error(w, "Ошибка сохранения в БД", http.StatusInternalServerError)
+		http.Error(writer, "Ошибка сохранения в БД", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(newTask)
+	json.NewEncoder(writer).Encode(newTask)
 
 }

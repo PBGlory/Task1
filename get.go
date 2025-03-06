@@ -6,18 +6,18 @@ import (
 	"net/http"
 )
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func GetHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Получен GET-запрос")
 	var tasks []Task
 
 	if err := DB.Find(&tasks).Error; err != nil {
-		http.Error(w, "Ошибка получения данных", http.StatusInternalServerError)
+		http.Error(writer, "Ошибка получения данных", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(tasks); err != nil {
-		http.Error(w, "Ошибка кодирования ответа", http.StatusInternalServerError)
+	if err := json.NewEncoder(writer).Encode(tasks); err != nil {
+		http.Error(writer, "Ошибка кодирования ответа", http.StatusInternalServerError)
 	}
 }
