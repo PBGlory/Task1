@@ -19,7 +19,7 @@ func PostHandler(writer http.ResponseWriter, request *http.Request) {
 
 	newTask.Task = strings.TrimSpace(newTask.Task)
 
-	if newTask.Task == "" {
+	if len(newTask.Task) == 0 {
 		http.Error(writer, "Поле 'task' обязательно и должно содержать символы", http.StatusBadRequest)
 		return
 	}

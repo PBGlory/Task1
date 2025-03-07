@@ -20,27 +20,7 @@ func DeleteHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var deleteData struct {
-		Task   *string `json:"task"`
-		IsDone *bool   `json:"is_done"`
-	}
-
-	if err := DB.Delete(&existingTask).Error; err != nil {
-		http.Error(writer, `{"error": "Ошибка декодирования JSON"}`, http.StatusBadRequest)
-	}
-
-	if deleteData.Task != nil {
-		existingTask.Task = *deleteData.Task
-	}
-
-	if deleteData.IsDone != nil {
-		existingTask.IsDone = *deleteData.IsDone
-	}
-
-	if err := DB.Save(&existingTask).Error; err != nil {
-		http.Error(writer, `{"error": "Ошибка обновления БД"}`, http.StatusInternalServerError)
-
-	}
+	DB.Delete(&existingTask)
 
 	writer.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(writer).Encode(existingTask)
